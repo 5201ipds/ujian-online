@@ -427,7 +427,13 @@
             const data = new Uint8Array(e.target.result);
             const workbook = XLSX.read(data, { type: 'array' });
             const sheet = workbook.Sheets[workbook.SheetNames[0]];
-            resolve(XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' }));
+            // raw:false membuat nilai dibaca sebagai tampilan teks dari Excel,
+            // sehingga pecahan/angka tidak otomatis berubah format.
+            resolve(XLSX.utils.sheet_to_json(sheet, {
+              header: 1,
+              defval: '',
+              raw: false
+            }));
           } catch (err) {
             reject(err);
           }
