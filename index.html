@@ -5,45 +5,158 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Aplikasi Web Ujian Google Sheet</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 <body class="bg-slate-100 min-h-screen text-slate-800">
-  <main class="max-w-5xl mx-auto p-4 md:p-8">
-    <section class="bg-white rounded-2xl shadow p-6 mb-6">
-      <h1 class="text-2xl md:text-3xl font-bold mb-2">Aplikasi Web Ujian</h1>
-      <p class="text-slate-600 mb-4">
-        Soal dibaca dari tab <b>soal</b>, pengaturan dari tab <b>pengaturan</b>, dan jawaban disimpan ke tab <b>respon</b>.
-      </p>
+  <main class="max-w-6xl mx-auto p-4 md:p-8">
+    <section id="halamanPeserta">
+      <section class="bg-white rounded-2xl shadow p-6 mb-6">
+        <div class="flex items-start justify-between gap-4 mb-4">
+          <div>
+            <h1 class="text-2xl md:text-3xl font-bold mb-2">Aplikasi Web Ujian</h1>
+            <p class="text-slate-600">
+              Soal dibaca dari tab <b>soal</b>, pengaturan dari tab <b>pengaturan</b>, dan jawaban disimpan ke tab <b>respon</b>.
+            </p>
+          </div>
 
-      <div id="periodeInfo" class="hidden bg-blue-50 border border-blue-200 rounded-xl p-4 mb-4 text-sm"></div>
-
-      <div class="grid md:grid-cols-2 gap-4">
-        <div>
-          <label class="font-semibold block mb-2">Nama</label>
-          <input id="nama" type="text" placeholder="Nama peserta" class="w-full border rounded-xl p-3" />
+          <button
+            onclick="bukaLoginAdmin()"
+            class="w-12 h-12 rounded-full bg-purple-600 hover:bg-purple-700 text-white flex items-center justify-center shadow-lg transition"
+            title="Login Admin"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" class="w-6 h-6">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6.75a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+            </svg>
+          </button>
         </div>
-        <div>
-          <label class="font-semibold block mb-2">Email</label>
-          <input id="email" type="email" placeholder="email@domain.com" class="w-full border rounded-xl p-3" />
-        </div>
-      </div>
+        
 
-      <div class="mt-4 flex flex-wrap gap-3">
-        <button onclick="ambilSoal()" class="px-4 py-2 rounded-xl bg-slate-700 text-white hover:bg-slate-800">Ambil Soal</button>
-        <button onclick="mulaiUjian()" class="px-4 py-2 rounded-xl bg-blue-600 text-white hover:bg-blue-700">Mulai Ujian</button>
-      </div>
+        <div id="periodeInfo" class="hidden bg-blue-50 border border-blue-200 rounded-xl p-4 mb-4 text-sm"></div>
+
+        <div class="grid md:grid-cols-2 gap-4">
+          <div>
+            <label class="font-semibold block mb-2">Nama</label>
+            <input id="nama" type="text" placeholder="Nama peserta" class="w-full border rounded-xl p-3" />
+          </div>
+          <div>
+            <label class="font-semibold block mb-2">Email</label>
+            <input id="email" type="email" placeholder="email@domain.com" class="w-full border rounded-xl p-3" />
+          </div>
+        </div>
+
+        <div class="mt-6 flex items-center justify-between gap-4">
+          <button
+            onclick="ambilSoal()"
+            class="px-6 py-3 rounded-xl bg-slate-700 text-white hover:bg-slate-800 font-semibold shadow transition"
+          >
+            Ambil Soal
+          </button>
+
+          <button
+            onclick="mulaiUjian()"
+            class="px-6 py-3 rounded-xl bg-blue-600 text-white hover:bg-blue-700 font-semibold shadow transition"
+          >
+            Mulai Ujian
+          </button>
+        </div>
+      </section>
+
+      <section id="areaInfo" class="hidden bg-amber-50 border border-amber-200 rounded-2xl p-4 mb-6"></section>
+
+      <section id="areaUjian" class="hidden bg-white rounded-2xl shadow p-6 mb-6">
+        <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+          <h2 class="text-xl font-bold">Form Ujian</h2>
+          <div id="timerUjian" class="bg-red-100 text-red-700 font-bold px-4 py-2 rounded-xl">
+            Sisa Waktu: 60:00
+          </div>
+        </div>
+        <form id="formUjian" class="space-y-5"></form>
+        <button onclick="kirimJawaban(false)" class="mt-6 px-5 py-3 rounded-xl bg-green-600 text-white hover:bg-green-700">Kirim Jawaban</button>
+      </section>
     </section>
 
-    <section id="areaInfo" class="hidden bg-amber-50 border border-amber-200 rounded-2xl p-4 mb-6"></section>
+    <div id="modalLoginAdmin" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+      <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-2xl font-bold">Login Admin</h2>
+          <button onclick="tutupLoginAdmin()" class="text-slate-500 hover:text-slate-700 text-xl">✕</button>
+        </div>
 
-    <section id="areaUjian" class="hidden bg-white rounded-2xl shadow p-6 mb-6">
-      <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
-        <h2 class="text-xl font-bold">Form Ujian</h2>
-        <div id="timerUjian" class="bg-red-100 text-red-700 font-bold px-4 py-2 rounded-xl">
-          Sisa Waktu: 60:00
+        <div class="space-y-4">
+          <div>
+            <label class="font-semibold block mb-2">Username</label>
+            <input id="adminUsername" type="text" placeholder="Username admin" class="w-full border rounded-xl p-3" />
+          </div>
+
+          <div>
+            <label class="font-semibold block mb-2">Password</label>
+            <input id="adminPassword" type="password" placeholder="Password admin" class="w-full border rounded-xl p-3" />
+          </div>
+
+          <button onclick="loginAdmin()" class="w-full px-4 py-3 rounded-xl bg-purple-600 text-white hover:bg-purple-700 font-semibold">
+            Masuk Dashboard Admin
+          </button>
         </div>
       </div>
-      <form id="formUjian" class="space-y-5"></form>
-      <button onclick="kirimJawaban(false)" class="mt-6 px-5 py-3 rounded-xl bg-green-600 text-white hover:bg-green-700">Kirim Jawaban</button>
+    </div>
+
+    <section id="halamanAdmin" class="hidden">
+      <section class="bg-white rounded-2xl shadow p-6 mb-6">
+        <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+          <div>
+            <h1 class="text-2xl md:text-3xl font-bold mb-2">Dashboard Admin Ujian</h1>
+            <p class="text-slate-600">Import soal Excel, pantau peserta submit, dan peserta yang sedang mengerjakan.</p>
+          </div>
+          <button onclick="logoutAdmin()" class="px-4 py-2 rounded-xl bg-slate-700 text-white hover:bg-slate-800">Logout Admin</button>
+        </div>
+
+        <div class="grid md:grid-cols-4 gap-4 mb-6">
+          <div class="border rounded-2xl p-4 bg-slate-50">
+            <p class="text-sm text-slate-500">Total Soal</p>
+            <p id="statSoal" class="text-3xl font-bold">0</p>
+          </div>
+          <div class="border rounded-2xl p-4 bg-slate-50">
+            <p class="text-sm text-slate-500">Sudah Submit</p>
+            <p id="statSubmit" class="text-3xl font-bold">0</p>
+          </div>
+          <div class="border rounded-2xl p-4 bg-slate-50">
+            <p class="text-sm text-slate-500">Sedang Mengerjakan</p>
+            <p id="statMengerjakan" class="text-3xl font-bold">0</p>
+          </div>
+          <div class="border rounded-2xl p-4 bg-slate-50">
+            <p class="text-sm text-slate-500">Durasi</p>
+            <p id="statDurasi" class="text-3xl font-bold">60</p>
+          </div>
+        </div>
+
+        <div class="border rounded-2xl p-4 mb-6">
+          <h2 class="text-xl font-bold mb-3">Import Soal dari Excel</h2>
+          <p class="text-sm text-slate-600 mb-3">Format kolom: <b>idsoal, jawaban benar, jawaban salah 1, jawaban salah 2, jawaban salah 3, jawaban salah 4</b>.</p>
+          <input id="fileImportSoal" type="file" accept=".xlsx,.xls,.csv" class="w-full border rounded-xl p-3 mb-3" />
+          <button onclick="importSoalExcel()" class="px-4 py-2 rounded-xl bg-blue-600 text-white hover:bg-blue-700">Import ke Google Sheet</button>
+        </div>
+
+        <div class="flex flex-wrap gap-3 mb-4">
+          <button onclick="loadDashboardAdmin()" class="px-4 py-2 rounded-xl bg-emerald-600 text-white hover:bg-emerald-700">Refresh Dashboard</button>
+        </div>
+
+        <div id="adminInfo" class="hidden bg-amber-50 border border-amber-200 rounded-2xl p-4 mb-6"></div>
+      </section>
+
+      <section class="grid lg:grid-cols-2 gap-6">
+        <div class="bg-white rounded-2xl shadow p-6">
+          <h2 class="text-xl font-bold mb-4">Peserta Sudah Submit</h2>
+          <div class="overflow-auto">
+            <table id="tabelSubmit" class="min-w-full border text-sm"></table>
+          </div>
+        </div>
+        <div class="bg-white rounded-2xl shadow p-6">
+          <h2 class="text-xl font-bold mb-4">Peserta Sedang Mengerjakan</h2>
+          <div class="overflow-auto">
+            <table id="tabelMengerjakan" class="min-w-full border text-sm"></table>
+          </div>
+        </div>
+      </section>
     </section>
   </main>
 
@@ -59,24 +172,35 @@
     let timerInterval = null;
     let sudahAutoSubmit = false;
 
-    async function ambilSoal() {
-      if (!GAS_URL || GAS_URL.includes('PASTE_URL')) {
-        tampilInfo('GAS_URL belum diisi. Deploy Apps Script dulu, lalu tempel URL Web App ke kode HTML.');
-        return;
-      }
+    document.addEventListener('DOMContentLoaded', () => {
+      const isAdmin = sessionStorage.getItem('adminLogin') === 'true';
 
+      document.getElementById('halamanPeserta').classList.toggle('hidden', isAdmin);
+      document.getElementById('halamanAdmin').classList.toggle('hidden', !isAdmin);
+
+      if (isAdmin) {
+        loadDashboardAdmin();
+      }
+    });
+
+    async function ambilSoal() {
+      if (!cekGasUrl()) return;
       tampilInfo('Mengambil soal dari Google Sheet...');
 
       try {
         const response = await fetch(`${GAS_URL}?action=getSoal&cache=${Date.now()}`);
         const result = await response.json();
-
         if (!result.success) throw new Error(result.message || 'Gagal mengambil soal.');
 
-        bankSoal = result.data.soal;
-        pengaturan = result.data.pengaturan;
-        durasiMenit = Number(pengaturan.durasiMenit || 60);
+        if (Array.isArray(result.data)) {
+          bankSoal = result.data;
+          pengaturan = { durasiMenit: 60, aktif: true, mulai: '-', selesai: '-' };
+        } else {
+          bankSoal = result.data.soal || [];
+          pengaturan = result.data.pengaturan || { durasiMenit: 60, aktif: true, mulai: '-', selesai: '-' };
+        }
 
+        durasiMenit = Number(pengaturan.durasiMenit || 60);
         tampilPeriode(pengaturan);
         tampilInfo(`${bankSoal.length} soal berhasil dimuat dari Google Sheet.`);
       } catch (error) {
@@ -100,7 +224,7 @@
 
       try {
         tampilInfo('Mengecek status peserta dan periode ujian...');
-        const response = await fetch(`${GAS_URL}?action=cekPeserta&email=${encodeURIComponent(email)}&cache=${Date.now()}`);
+        const response = await fetch(`${GAS_URL}?action=mulaiUjian&nama=${encodeURIComponent(nama)}&email=${encodeURIComponent(email)}&cache=${Date.now()}`);
         const result = await response.json();
 
         if (!result.success) throw new Error(result.message || 'Tidak bisa memulai ujian.');
@@ -188,7 +312,6 @@
             jawaban[soal.idsoal] = '';
             continue;
           }
-
           tampilInfo(`Soal "${soal.idsoal}" belum dijawab.`);
           return;
         }
@@ -232,10 +355,106 @@
       }
     }
 
+    async function loadDashboardAdmin() {
+      if (!cekGasUrl(true)) return;
+      adminInfo('Memuat dashboard admin...');
+
+      try {
+        const response = await fetch(`${GAS_URL}?action=getDashboard&cache=${Date.now()}`);
+        const result = await response.json();
+        if (!result.success) throw new Error(result.message || 'Gagal memuat dashboard.');
+
+        const data = result.data;
+        document.getElementById('statSoal').textContent = data.totalSoal || 0;
+        document.getElementById('statSubmit').textContent = data.totalSubmit || 0;
+        document.getElementById('statMengerjakan').textContent = data.totalMengerjakan || 0;
+        document.getElementById('statDurasi').textContent = data.durasiMenit || 60;
+
+        renderTabel('tabelSubmit', ['timestamp', 'nama', 'email', 'skor', 'total'], data.submit || []);
+        renderTabel('tabelMengerjakan', ['mulai', 'nama', 'email', 'status'], data.mengerjakan || []);
+        adminInfo('Dashboard berhasil dimuat.');
+      } catch (error) {
+        adminInfo('Gagal memuat dashboard: ' + error.message);
+      }
+    }
+
+    async function importSoalExcel() {
+      if (!cekGasUrl(true)) return;
+      const file = document.getElementById('fileImportSoal').files[0];
+      if (!file) {
+        adminInfo('Pilih file Excel terlebih dahulu.');
+        return;
+      }
+
+      try {
+        adminInfo('Membaca file Excel...');
+        const rows = await bacaExcel(file);
+        const soal = rows.slice(1)
+          .filter(row => row[0])
+          .map(row => ({
+            idsoal: String(row[0] || '').trim(),
+            benar: String(row[1] || '').trim(),
+            salah1: String(row[2] || '').trim(),
+            salah2: String(row[3] || '').trim(),
+            salah3: String(row[4] || '').trim(),
+            salah4: String(row[5] || '').trim()
+          }));
+
+        if (soal.length === 0) throw new Error('Tidak ada soal yang terbaca dari Excel.');
+
+        adminInfo(`Mengimport ${soal.length} soal ke Google Sheet...`);
+        const response = await fetch(GAS_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({ action: 'importSoal', soal })
+        });
+
+        const result = await response.json();
+        if (!result.success) throw new Error(result.message || 'Gagal import soal.');
+
+        adminInfo(`${soal.length} soal berhasil diimport ke Google Sheet.`);
+        loadDashboardAdmin();
+      } catch (error) {
+        adminInfo('Gagal import soal: ' + error.message);
+      }
+    }
+
+    function bacaExcel(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = e => {
+          try {
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, { type: 'array' });
+            const sheet = workbook.Sheets[workbook.SheetNames[0]];
+            resolve(XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' }));
+          } catch (err) {
+            reject(err);
+          }
+        };
+        reader.onerror = reject;
+        reader.readAsArrayBuffer(file);
+      });
+    }
+
+    function renderTabel(id, header, rows) {
+      const tabel = document.getElementById(id);
+      if (!rows.length) {
+        tabel.innerHTML = '<tbody><tr><td class="border p-3 text-slate-500">Belum ada data.</td></tr></tbody>';
+        return;
+      }
+
+      tabel.innerHTML = `
+        <thead><tr class="bg-slate-200">${header.map(h => `<th class="border p-2 text-left">${escapeHtml(h)}</th>`).join('')}</tr></thead>
+        <tbody>
+          ${rows.map(row => `<tr>${header.map(h => `<td class="border p-2">${escapeHtml(row[h] ?? '')}</td>`).join('')}</tr>`).join('')}
+        </tbody>
+      `;
+    }
+
     function tampilPeriode(data) {
       const el = document.getElementById('periodeInfo');
       if (!data) return;
-
       el.innerHTML = `
         <b>Pengaturan Ujian</b><br>
         Periode Dibuka: ${escapeHtml(data.mulai || '-')}<br>
@@ -246,12 +465,65 @@
       el.classList.remove('hidden');
     }
 
+    function bukaLoginAdmin() {
+      document.getElementById('modalLoginAdmin').classList.remove('hidden');
+    }
+
+    function tutupLoginAdmin() {
+      document.getElementById('modalLoginAdmin').classList.add('hidden');
+    }
+
+    async function loginAdmin() {
+      const username = document.getElementById('adminUsername').value.trim();
+      const password = document.getElementById('adminPassword').value.trim();
+
+      if (!username || !password) {
+        alert('Username dan password wajib diisi.');
+        return;
+      }
+
+      try {
+        const response = await fetch(`${GAS_URL}?action=loginAdmin&username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}&cache=${Date.now()}`);
+        const result = await response.json();
+
+        if (!result.success) {
+          alert(result.message || 'Login gagal.');
+          return;
+        }
+
+        sessionStorage.setItem('adminLogin', 'true');
+        location.reload();
+      } catch (error) {
+        alert('Gagal login: ' + error.message);
+      }
+    }
+
+    function logoutAdmin() {
+      sessionStorage.removeItem('adminLogin');
+      location.href = './';
+    }
+
+    function cekGasUrl(isAdmin = false) {
+      if (!GAS_URL || GAS_URL.includes('PASTE_URL')) {
+        const pesan = 'GAS_URL belum diisi. Tempel URL Web App Apps Script ke kode HTML.';
+        isAdmin ? adminInfo(pesan) : tampilInfo(pesan);
+        return false;
+      }
+      return true;
+    }
+
     function acakArray(arr) {
       return [...arr].sort(() => Math.random() - 0.5);
     }
 
     function tampilInfo(pesan) {
       const area = document.getElementById('areaInfo');
+      area.textContent = pesan;
+      area.classList.remove('hidden');
+    }
+
+    function adminInfo(pesan) {
+      const area = document.getElementById('adminInfo');
       area.textContent = pesan;
       area.classList.remove('hidden');
     }
