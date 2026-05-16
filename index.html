@@ -11,8 +11,10 @@
     <section class="bg-white rounded-2xl shadow p-6 mb-6">
       <h1 class="text-2xl md:text-3xl font-bold mb-2">Aplikasi Web Ujian</h1>
       <p class="text-slate-600 mb-4">
-        Soal dibaca dari tab <b>soal</b>, lalu jawaban peserta disimpan ke tab <b>respon</b> di Google Sheet.
+        Soal dibaca dari tab <b>soal</b>, pengaturan dari tab <b>pengaturan</b>, dan jawaban disimpan ke tab <b>respon</b>.
       </p>
+
+      <div id="periodeInfo" class="hidden bg-blue-50 border border-blue-200 rounded-xl p-4 mb-4 text-sm"></div>
 
       <div class="grid md:grid-cols-2 gap-4">
         <div>
@@ -34,9 +36,14 @@
     <section id="areaInfo" class="hidden bg-amber-50 border border-amber-200 rounded-2xl p-4 mb-6"></section>
 
     <section id="areaUjian" class="hidden bg-white rounded-2xl shadow p-6 mb-6">
-      <h2 class="text-xl font-bold mb-4">Form Ujian</h2>
+      <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+        <h2 class="text-xl font-bold">Form Ujian</h2>
+        <div id="timerUjian" class="bg-red-100 text-red-700 font-bold px-4 py-2 rounded-xl">
+          Sisa Waktu: 60:00
+        </div>
+      </div>
       <form id="formUjian" class="space-y-5"></form>
-      <button onclick="kirimJawaban()" class="mt-6 px-5 py-3 rounded-xl bg-green-600 text-white hover:bg-green-700">Kirim Jawaban</button>
+      <button onclick="kirimJawaban(false)" class="mt-6 px-5 py-3 rounded-xl bg-green-600 text-white hover:bg-green-700">Kirim Jawaban</button>
     </section>
   </main>
 
@@ -45,7 +52,12 @@
     const GAS_URL = 'https://script.google.com/macros/s/AKfycbwzd1OTpKqPeTtMPUkMlviW2u0xPpFWMrE72e8ISUCvwmRBllAuIsB4mt6VRoSJrSzc-g/exec';
 
     let bankSoal = [];
+    let pengaturan = null;
     let sedangKirim = false;
+    let waktuMulaiUjian = null;
+    let durasiMenit = 60;
+    let timerInterval = null;
+    let sudahAutoSubmit = false;
 
     async function ambilSoal() {
       if (!GAS_URL || GAS_URL.includes('PASTE_URL')) {
@@ -61,16 +73,20 @@
 
         if (!result.success) throw new Error(result.message || 'Gagal mengambil soal.');
 
-        bankSoal = result.data;
+        bankSoal = result.data.soal;
+        pengaturan = result.data.pengaturan;
+        durasiMenit = Number(pengaturan.durasiMenit || 60);
+
+        tampilPeriode(pengaturan);
         tampilInfo(`${bankSoal.length} soal berhasil dimuat dari Google Sheet.`);
       } catch (error) {
         tampilInfo('Gagal mengambil soal: ' + error.message);
       }
     }
 
-    function mulaiUjian() {
+    async function mulaiUjian() {
       const nama = document.getElementById('nama').value.trim();
-      const email = document.getElementById('email').value.trim();
+      const email = document.getElementById('email').value.trim().toLowerCase();
 
       if (!nama || !email) {
         tampilInfo('Nama dan email wajib diisi.');
@@ -82,6 +98,27 @@
         return;
       }
 
+      try {
+        tampilInfo('Mengecek status peserta dan periode ujian...');
+        const response = await fetch(`${GAS_URL}?action=cekPeserta&email=${encodeURIComponent(email)}&cache=${Date.now()}`);
+        const result = await response.json();
+
+        if (!result.success) throw new Error(result.message || 'Tidak bisa memulai ujian.');
+
+        renderSoal();
+        waktuMulaiUjian = Date.now();
+        sudahAutoSubmit = false;
+        mulaiTimer();
+
+        document.getElementById('areaUjian').classList.remove('hidden');
+        tampilInfo('Ujian dimulai. Timer berjalan sejak tombol Mulai Ujian ditekan.');
+      } catch (error) {
+        document.getElementById('areaUjian').classList.add('hidden');
+        tampilInfo(error.message);
+      }
+    }
+
+    function renderSoal() {
       const form = document.getElementById('formUjian');
       form.innerHTML = '';
 
@@ -102,22 +139,56 @@
         `;
         form.appendChild(div);
       });
-
-      document.getElementById('areaUjian').classList.remove('hidden');
-      tampilInfo('Ujian siap dikerjakan.');
     }
 
-    async function kirimJawaban() {
+    function mulaiTimer() {
+      clearInterval(timerInterval);
+      const timerEl = document.getElementById('timerUjian');
+
+      function updateTimer() {
+        const selesai = waktuMulaiUjian + durasiMenit * 60 * 1000;
+        const sisa = selesai - Date.now();
+
+        if (sisa <= 0) {
+          clearInterval(timerInterval);
+          timerEl.textContent = 'Waktu Habis';
+          autoSubmitKarenaWaktuHabis();
+          return;
+        }
+
+        const menit = Math.floor(sisa / 1000 / 60);
+        const detik = Math.floor((sisa / 1000) % 60);
+        timerEl.textContent = `Sisa Waktu: ${String(menit).padStart(2, '0')}:${String(detik).padStart(2, '0')}`;
+      }
+
+      updateTimer();
+      timerInterval = setInterval(updateTimer, 1000);
+    }
+
+    async function autoSubmitKarenaWaktuHabis() {
+      if (sudahAutoSubmit) return;
+      sudahAutoSubmit = true;
+      tampilInfo('Waktu ujian habis. Jawaban yang sudah terisi akan otomatis dikirim.');
+      await kirimJawaban(true);
+    }
+
+    async function kirimJawaban(forceSubmit) {
       if (sedangKirim) return;
 
       const nama = document.getElementById('nama').value.trim();
-      const email = document.getElementById('email').value.trim();
+      const email = document.getElementById('email').value.trim().toLowerCase();
       const jawaban = {};
       let skor = 0;
 
       for (const soal of bankSoal) {
         const input = document.querySelector(`input[name="${cssEscape(soal.idsoal)}"]:checked`);
+
         if (!input) {
+          if (forceSubmit) {
+            jawaban[soal.idsoal] = '';
+            continue;
+          }
+
           tampilInfo(`Soal "${soal.idsoal}" belum dijawab.`);
           return;
         }
@@ -133,28 +204,46 @@
         jawaban,
         skor,
         total: bankSoal.length,
-        waktu: new Date().toISOString()
+        waktuMulai: waktuMulaiUjian ? new Date(waktuMulaiUjian).toISOString() : '',
+        waktuKirim: new Date().toISOString(),
+        durasiMenit
       };
 
       try {
         sedangKirim = true;
         tampilInfo('Mengirim jawaban ke Google Sheet...');
 
-        // text/plain dipakai agar tidak terkena preflight CORS Apps Script.
-        await fetch(GAS_URL, {
+        const response = await fetch(GAS_URL, {
           method: 'POST',
-          mode: 'no-cors',
           headers: { 'Content-Type': 'text/plain;charset=utf-8' },
           body: JSON.stringify(payload)
         });
 
+        const result = await response.json();
+        if (!result.success) throw new Error(result.message || 'Gagal menyimpan jawaban.');
+
+        clearInterval(timerInterval);
         tampilInfo(`Jawaban berhasil dikirim. Skor: ${skor}/${bankSoal.length}`);
         document.getElementById('areaUjian').classList.add('hidden');
       } catch (error) {
-        tampilInfo('Gagal mengirim jawaban: ' + error.message);
+        tampilInfo(error.message);
       } finally {
         sedangKirim = false;
       }
+    }
+
+    function tampilPeriode(data) {
+      const el = document.getElementById('periodeInfo');
+      if (!data) return;
+
+      el.innerHTML = `
+        <b>Pengaturan Ujian</b><br>
+        Periode Dibuka: ${escapeHtml(data.mulai || '-')}<br>
+        Periode Ditutup: ${escapeHtml(data.selesai || '-')}<br>
+        Durasi Pengerjaan: ${escapeHtml(data.durasiMenit || 60)} menit<br>
+        Status Periode: ${data.aktif ? '<b class="text-green-700">Aktif</b>' : '<b class="text-red-700">Tidak aktif</b>'}
+      `;
+      el.classList.remove('hidden');
     }
 
     function acakArray(arr) {
@@ -183,101 +272,3 @@
   </script>
 </body>
 </html>
-
-<!--
-====================================================================
-KODE GOOGLE APPS SCRIPT
-====================================================================
-1. Buka Google Sheet Anda.
-2. Klik Extensions / Ekstensi > Apps Script.
-3. Hapus kode lama, lalu tempel kode di bawah ini.
-4. Klik Deploy > New deployment > Web app.
-5. Execute as: Me.
-6. Who has access: Anyone.
-7. Copy URL Web App, lalu tempel ke konstanta GAS_URL di HTML.
-====================================================================
-
-const SPREADSHEET_ID = '1EzL4T8XGP2W5rC-7KsnOTFghKqtHxjpS6FzfnhR6JPg';
-const SHEET_SOAL = 'soal';
-const SHEET_RESPON = 'respon';
-
-function doGet(e) {
-  const action = e.parameter.action;
-
-  if (action === 'getSoal') {
-    return jsonOutput({ success: true, data: getSoal() });
-  }
-
-  return jsonOutput({ success: false, message: 'Action tidak dikenal.' });
-}
-
-function doPost(e) {
-  try {
-    const body = JSON.parse(e.postData.contents || '{}');
-
-    if (body.action === 'saveRespon') {
-      saveRespon(body);
-      return jsonOutput({ success: true, message: 'Respon berhasil disimpan.' });
-    }
-
-    return jsonOutput({ success: false, message: 'Action tidak dikenal.' });
-  } catch (err) {
-    return jsonOutput({ success: false, message: err.message });
-  }
-}
-
-function getSoal() {
-  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  const sheet = ss.getSheetByName(SHEET_SOAL);
-  const values = sheet.getDataRange().getValues();
-
-  return values.slice(1)
-    .filter(row => row[0])
-    .map(row => ({
-      idsoal: String(row[0]).trim(),
-      benar: String(row[1]).trim(),
-      salah: [row[2], row[3], row[4], row[5]]
-        .map(value => String(value).trim())
-        .filter(Boolean)
-    }));
-}
-
-function saveRespon(data) {
-  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  const sheetSoal = ss.getSheetByName(SHEET_SOAL);
-  const sheetRespon = ss.getSheetByName(SHEET_RESPON) || ss.insertSheet(SHEET_RESPON);
-
-  const soalValues = sheetSoal.getDataRange().getValues();
-  const idSoal = soalValues.slice(1).filter(row => row[0]).map(row => String(row[0]).trim());
-
-  const header = ['timestamp', 'nama', 'email', ...idSoal, 'skor', 'total'];
-
-  if (sheetRespon.getLastRow() === 0) {
-    sheetRespon.appendRow(header);
-  } else {
-    const existingHeader = sheetRespon.getRange(1, 1, 1, Math.max(sheetRespon.getLastColumn(), header.length)).getValues()[0];
-    const perluUpdateHeader = header.some((h, i) => existingHeader[i] !== h);
-    if (perluUpdateHeader) {
-      sheetRespon.getRange(1, 1, 1, header.length).setValues([header]);
-    }
-  }
-
-  const row = [
-    new Date(),
-    data.nama || '',
-    data.email || '',
-    ...idSoal.map(id => data.jawaban && data.jawaban[id] ? data.jawaban[id] : ''),
-    data.skor || 0,
-    data.total || idSoal.length
-  ];
-
-  sheetRespon.appendRow(row);
-}
-
-function jsonOutput(obj) {
-  return ContentService
-    .createTextOutput(JSON.stringify(obj))
-    .setMimeType(ContentService.MimeType.JSON);
-}
-
--->
