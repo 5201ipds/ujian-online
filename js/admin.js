@@ -341,6 +341,7 @@ function renderSubmit() {
         <th>Email</th>
         <th>Skor</th>
         <th>Total</th>
+<th>Aksi</th>
       </tr>
     </thead>
 
@@ -366,6 +367,15 @@ function renderSubmit() {
           <td>
             ${escapeHtml(row.total || "")}
           </td>
+
+<td>
+  <button
+    onclick="hapusSubmit('${escapeHtml(row.email || "")}')"
+    class="px-3 py-2 rounded-xl bg-red-600 text-white hover:bg-red-700 text-xs font-semibold">
+    Hapus
+  </button>
+</td>
+          
         </tr>
       `).join("")}
     </tbody>
@@ -423,6 +433,7 @@ function renderMengerjakan() {
         <th>Nama</th>
         <th>Email</th>
         <th>Status</th>
+        <th>Aksi</th>
       </tr>
     </thead>
 
@@ -444,6 +455,14 @@ function renderMengerjakan() {
           <td>
             ${escapeHtml(row.status || "")}
           </td>
+
+          <td>
+  <button
+    onclick="hapusSesi('${escapeHtml(row.email || "")}')"
+    class="px-3 py-2 rounded-xl bg-red-600 text-white hover:bg-red-700 text-xs font-semibold">
+    Hapus
+  </button>
+</td>
         </tr>
       `).join("")}
     </tbody>
@@ -496,4 +515,66 @@ function updateInfoMengerjakan(totalPage) {
 function logoutAdmin() {
   sessionStorage.clear();
   window.location.href = "./admin.html";
+}
+
+async function hapusSubmit(email) {
+  const yakin =
+    confirm(
+      `Hapus data submit peserta ${email}? Peserta ini bisa ujian ulang setelah datanya dihapus.`
+    );
+
+  if (!yakin) return;
+
+  try {
+    adminInfo("Menghapus data submit...");
+
+    const result =
+      await apiPost({
+        action: "deleteSubmit",
+        email
+      });
+
+    if (!result.success) {
+      throw new Error(
+        result.message || "Gagal menghapus data submit."
+      );
+    }
+
+    adminInfo("Data submit berhasil dihapus.");
+
+    await loadDashboard();
+  } catch (error) {
+    adminInfo("Gagal menghapus data submit: " + error.message);
+  }
+}
+
+async function hapusSesi(email) {
+  const yakin =
+    confirm(
+      `Hapus status sedang mengerjakan peserta ${email}?`
+    );
+
+  if (!yakin) return;
+
+  try {
+    adminInfo("Menghapus sesi peserta...");
+
+    const result =
+      await apiPost({
+        action: "deleteSesi",
+        email
+      });
+
+    if (!result.success) {
+      throw new Error(
+        result.message || "Gagal menghapus sesi."
+      );
+    }
+
+    adminInfo("Sesi peserta berhasil dihapus.");
+
+    await loadDashboard();
+  } catch (error) {
+    adminInfo("Gagal menghapus sesi: " + error.message);
+  }
 }
