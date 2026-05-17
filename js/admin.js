@@ -63,6 +63,17 @@ async function loginAdmin() {
     return;
   }
 
+const btnLogin = document.getElementById("btnLoginAdmin");
+const inputUsername = document.getElementById("adminUsername");
+const inputPassword = document.getElementById("adminPassword");
+
+btnLogin.disabled = true;
+btnLogin.textContent = "Memproses...";
+btnLogin.classList.add("opacity-60", "cursor-not-allowed");
+
+inputUsername.disabled = true;
+inputPassword.disabled = true;
+  
   try {
     const result =
       await apiGet("loginAdmin", {
@@ -70,16 +81,31 @@ async function loginAdmin() {
         password
       });
 
-    if (!result.success) {
-      alert(result.message || "Login gagal.");
-      return;
-    }
+if (!result.success) {
+  alert(result.message || "Login gagal.");
+
+  btnLogin.disabled = false;
+  btnLogin.textContent = "Login";
+  btnLogin.classList.remove("opacity-60", "cursor-not-allowed");
+
+  inputUsername.disabled = false;
+  inputPassword.disabled = false;
+
+  return;
+}
 
     sessionStorage.setItem("adminLogin", "true");
 
     tampilkanDashboardAdmin();
   } catch (error) {
     alert("Gagal login: " + error.message);
+
+    btnLogin.disabled = false;
+btnLogin.textContent = "Login";
+btnLogin.classList.remove("opacity-60", "cursor-not-allowed");
+
+inputUsername.disabled = false;
+inputPassword.disabled = false;
   }
 }
 
