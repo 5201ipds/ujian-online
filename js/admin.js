@@ -8,6 +8,76 @@ let pageMengerjakan = 1;
 const pageSizeMengerjakan = 10;
 
 document.addEventListener("DOMContentLoaded", () => {
+  const sudahLogin =
+    sessionStorage.getItem("adminLogin") === "true";
+
+  if (sudahLogin) {
+    tampilkanDashboardAdmin();
+  } else {
+    tampilkanLoginAdmin();
+  }
+
+  document
+    .getElementById("btnLoginAdmin")
+    .addEventListener("click", loginAdmin);
+});
+
+function tampilkanLoginAdmin() {
+  document
+    .getElementById("loginAdminBox")
+    .classList.remove("hidden");
+
+  document
+    .getElementById("dashboardAdmin")
+    .classList.add("hidden");
+}
+
+function tampilkanDashboardAdmin() {
+  document
+    .getElementById("loginAdminBox")
+    .classList.add("hidden");
+
+  document
+    .getElementById("dashboardAdmin")
+    .classList.remove("hidden");
+
+  aktifkanEventAdmin();
+  loadDashboard();
+}
+
+async function loginAdmin() {
+  const username =
+    document.getElementById("adminUsername").value.trim();
+
+  const password =
+    document.getElementById("adminPassword").value.trim();
+
+  if (!username || !password) {
+    alert("Username dan password wajib diisi.");
+    return;
+  }
+
+  try {
+    const result =
+      await apiGet("loginAdmin", {
+        username,
+        password
+      });
+
+    if (!result.success) {
+      alert(result.message || "Login gagal.");
+      return;
+    }
+
+    sessionStorage.setItem("adminLogin", "true");
+
+    tampilkanDashboardAdmin();
+  } catch (error) {
+    alert("Gagal login: " + error.message);
+  }
+}
+
+function aktifkanEventAdmin() {
   document
     .getElementById("btnImport")
     .addEventListener("click", importSoalExcel);
@@ -31,9 +101,7 @@ document.addEventListener("DOMContentLoaded", () => {
   document
     .getElementById("nextMengerjakan")
     .addEventListener("click", nextMengerjakanPage);
-
-  loadDashboard();
-});
+}
 
 async function loadDashboard() {
   adminInfo("Memuat dashboard...");
