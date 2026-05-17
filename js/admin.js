@@ -7,6 +7,8 @@ let pageSizeSubmit = 10;
 let pageMengerjakan = 1;
 const pageSizeMengerjakan = 10;
 
+let eventAdminSudahAktif = false;
+
 document.addEventListener("DOMContentLoaded", () => {
   const sudahLogin =
     sessionStorage.getItem("adminLogin") === "true";
@@ -41,7 +43,11 @@ function tampilkanDashboardAdmin() {
     .getElementById("dashboardAdmin")
     .classList.remove("hidden");
 
-  aktifkanEventAdmin();
+  if (!eventAdminSudahAktif) {
+    aktifkanEventAdmin();
+    eventAdminSudahAktif = true;
+  }
+
   loadDashboard();
 }
 
@@ -462,10 +468,6 @@ function updateInfoMengerjakan(totalPage) {
 }
 
 function logoutAdmin() {
-
-  sessionStorage.removeItem(
-    "adminLogin"
-  );
-
-  location.reload();
+  sessionStorage.clear();
+  window.location.href = "./admin.html";
 }
