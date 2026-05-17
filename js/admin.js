@@ -78,6 +78,11 @@ async function loginAdmin() {
 }
 
 function aktifkanEventAdmin() {
+
+  document
+  .getElementById("btnLogoutAdmin")
+  .addEventListener("click", logoutAdmin);
+  
   document
     .getElementById("btnImport")
     .addEventListener("click", importSoalExcel);
@@ -454,4 +459,13 @@ function updateInfoSubmit(totalPage) {
 function updateInfoMengerjakan(totalPage) {
   document.getElementById("infoPageMengerjakan").textContent =
     `Halaman ${pageMengerjakan} dari ${totalPage} • Total ${dataMengerjakan.length} data`;
+}
+
+function logoutAdmin() {
+
+  sessionStorage.removeItem(
+    "adminLogin"
+  );
+
+  location.reload();
 }
