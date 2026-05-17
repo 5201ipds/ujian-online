@@ -198,6 +198,11 @@ async function autoSubmitKarenaWaktuHabis() {
 async function kirimJawaban(forceSubmit = false) {
   if (sedangKirim) return;
 
+const btnKirim = document.getElementById("btnKirim");
+btnKirim.disabled = true;
+btnKirim.textContent = "Mengirim...";
+btnKirim.classList.add("opacity-60", "cursor-not-allowed");
+  
   const nama =
     document.getElementById("nama").value.trim();
 
@@ -269,6 +274,10 @@ async function kirimJawaban(forceSubmit = false) {
   } catch (error) {
     tampilInfo(error.message);
   } finally {
+    btnKirim.disabled = false;
+btnKirim.textContent = "Kirim Jawaban";
+btnKirim.classList.remove("opacity-60", "cursor-not-allowed");
+    
     sedangKirim = false;
   }
 }
