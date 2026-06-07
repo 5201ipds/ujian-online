@@ -32,11 +32,9 @@ async function ambilSoal() {
 
     bankSoal = result.data.soal || [];
     pengaturan = result.data.pengaturan || {};
-
     durasiMenit = Number(pengaturan.durasiMenit || 60);
 
     tampilPeriode(pengaturan);
-
     tampilInfo(`${bankSoal.length} soal berhasil dimuat.`);
   } catch (error) {
     tampilInfo("Gagal mengambil soal: " + error.message);
@@ -88,7 +86,6 @@ async function mulaiUjian() {
 
 function renderSoal() {
   const form = document.getElementById("formUjian");
-
   form.innerHTML = "";
 
   bankSoal.forEach((soal, index) => {
@@ -98,7 +95,6 @@ function renderSoal() {
     ]);
 
     const div = document.createElement("div");
-
     div.className = "blok-soal";
 
     div.innerHTML = `
@@ -159,11 +155,8 @@ function mulaiTimer() {
 
     if (sisa <= 0) {
       clearInterval(timerInterval);
-
       timerEl.textContent = "Waktu Habis";
-
       autoSubmitKarenaWaktuHabis();
-
       return;
     }
 
@@ -198,11 +191,6 @@ async function autoSubmitKarenaWaktuHabis() {
 async function kirimJawaban(forceSubmit = false) {
   if (sedangKirim) return;
 
-const btnKirim = document.getElementById("btnKirim");
-btnKirim.disabled = true;
-btnKirim.textContent = "Mengirim...";
-btnKirim.classList.add("opacity-60", "cursor-not-allowed");
-  
   const nama =
     document.getElementById("nama").value.trim();
 
@@ -212,6 +200,8 @@ btnKirim.classList.add("opacity-60", "cursor-not-allowed");
   const jawaban = {};
   let skor = 0;
 
+  // VALIDASI JAWABAN DULU
+  // Tombol belum dikunci di bagian ini.
   for (const soal of bankSoal) {
     const input =
       document.querySelector(
@@ -235,6 +225,19 @@ btnKirim.classList.add("opacity-60", "cursor-not-allowed");
     }
   }
 
+  // TOMBOL BARU DIKUNCI SETELAH SEMUA VALIDASI LOLOS
+  const btnKirim =
+    document.getElementById("btnKirim");
+
+  btnKirim.disabled = true;
+  btnKirim.innerHTML =
+    '<span class="animate-pulse">⏳ Mengirim...</span>';
+
+  btnKirim.classList.add(
+    "opacity-60",
+    "cursor-not-allowed"
+  );
+
   const payload = {
     action: "saveRespon",
     nama,
@@ -256,10 +259,13 @@ btnKirim.classList.add("opacity-60", "cursor-not-allowed");
 
     tampilInfo("Mengirim jawaban...");
 
-    const result = await apiPost(payload);
+    const result =
+      await apiPost(payload);
 
     if (!result.success) {
-      throw new Error(result.message || "Gagal menyimpan jawaban.");
+      throw new Error(
+        result.message || "Gagal menyimpan jawaban."
+      );
     }
 
     clearInterval(timerInterval);
@@ -271,13 +277,20 @@ btnKirim.classList.add("opacity-60", "cursor-not-allowed");
     document
       .getElementById("areaUjian")
       .classList.add("hidden");
+
   } catch (error) {
     tampilInfo(error.message);
-  } finally {
+
+    // Kalau gagal kirim ke server, tombol aktif lagi.
     btnKirim.disabled = false;
-btnKirim.textContent = "Kirim Jawaban";
-btnKirim.classList.remove("opacity-60", "cursor-not-allowed");
-    
+    btnKirim.innerHTML = "Kirim Jawaban";
+
+    btnKirim.classList.remove(
+      "opacity-60",
+      "cursor-not-allowed"
+    );
+
+  } finally {
     sedangKirim = false;
   }
 }
