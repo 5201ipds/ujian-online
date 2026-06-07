@@ -7,17 +7,9 @@ let timerInterval = null;
 let sudahAutoSubmit = false;
 
 document.addEventListener("DOMContentLoaded", () => {
-  document
-    .getElementById("btnAmbilSoal")
-    .addEventListener("click", ambilSoal);
-
-  document
-    .getElementById("btnMulai")
-    .addEventListener("click", mulaiUjian);
-
-document
-  .getElementById("btnKirim")
-  .addEventListener("click", konfirmasiKirim);
+  document.getElementById("btnAmbilSoal").addEventListener("click", ambilSoal);
+  document.getElementById("btnMulai").addEventListener("click", mulaiUjian);
+  document.getElementById("btnKirim").addEventListener("click", konfirmasiKirim);
 });
 
 async function ambilSoal() {
@@ -58,10 +50,7 @@ async function mulaiUjian() {
   try {
     tampilInfo("Mengecek status peserta...");
 
-    const result = await apiGet("mulaiUjian", {
-      nama,
-      email
-    });
+    const result = await apiGet("mulaiUjian", { nama, email });
 
     if (!result.success) {
       throw new Error(result.message || "Tidak bisa memulai ujian.");
@@ -74,10 +63,7 @@ async function mulaiUjian() {
 
     mulaiTimer();
 
-    document
-      .getElementById("areaUjian")
-      .classList.remove("hidden");
-
+    document.getElementById("areaUjian").classList.remove("hidden");
     tampilInfo("Ujian dimulai. Timer berjalan.");
   } catch (error) {
     tampilInfo(error.message);
@@ -89,19 +75,14 @@ function renderSoal() {
   form.innerHTML = "";
 
   bankSoal.forEach((soal, index) => {
-    const pilihan = acakArray([
-      soal.benar,
-      ...soal.salah
-    ]);
+    const pilihan = acakArray([soal.benar, ...soal.salah]);
 
     const div = document.createElement("div");
     div.className = "blok-soal";
 
     div.innerHTML = `
       <div class="flex items-start gap-4 mb-5">
-        <div class="nomor-soal">
-          ${index + 1}
-        </div>
+        <div class="nomor-soal">${index + 1}</div>
 
         <div class="min-w-0">
           <p class="text-xs uppercase tracking-wide text-slate-400 font-bold mb-1">
@@ -147,11 +128,8 @@ function mulaiTimer() {
   const timerEl = document.getElementById("timerUjian");
 
   function updateTimer() {
-    const selesai =
-      waktuMulaiUjian + durasiMenit * 60 * 1000;
-
-    const sisa =
-      selesai - Date.now();
+    const selesai = waktuMulaiUjian + durasiMenit * 60 * 1000;
+    const sisa = selesai - Date.now();
 
     if (sisa <= 0) {
       clearInterval(timerInterval);
@@ -160,20 +138,15 @@ function mulaiTimer() {
       return;
     }
 
-    const menit =
-      Math.floor(sisa / 1000 / 60);
-
-    const detik =
-      Math.floor((sisa / 1000) % 60);
+    const menit = Math.floor(sisa / 1000 / 60);
+    const detik = Math.floor((sisa / 1000) % 60);
 
     timerEl.textContent =
       `Sisa Waktu: ${String(menit).padStart(2, "0")}:${String(detik).padStart(2, "0")}`;
   }
 
   updateTimer();
-
-  timerInterval =
-    setInterval(updateTimer, 1000);
+  timerInterval = setInterval(updateTimer, 1000);
 }
 
 async function autoSubmitKarenaWaktuHabis() {
@@ -181,32 +154,38 @@ async function autoSubmitKarenaWaktuHabis() {
 
   sudahAutoSubmit = true;
 
-  tampilInfo(
-    "Waktu habis. Jawaban yang sudah terisi otomatis dikirim."
-  );
-
+  tampilInfo("Waktu habis. Jawaban yang sudah terisi otomatis dikirim.");
   await kirimJawaban(true);
+}
+
+async function konfirmasiKirim() {
+  const result = await Swal.fire({
+    icon: "question",
+    title: "Kirim Jawaban?",
+    text: "Pastikan semua jawaban sudah benar karena tidak dapat diubah lagi.",
+    showCancelButton: true,
+    confirmButtonText: "Ya, Kirim",
+    cancelButtonText: "Batal"
+  });
+
+  if (result.isConfirmed) {
+    kirimJawaban(false);
+  }
 }
 
 async function kirimJawaban(forceSubmit = false) {
   if (sedangKirim) return;
 
-  const nama =
-    document.getElementById("nama").value.trim();
-
-  const email =
-    document.getElementById("email").value.trim().toLowerCase();
+  const nama = document.getElementById("nama").value.trim();
+  const email = document.getElementById("email").value.trim().toLowerCase();
 
   const jawaban = {};
   let skor = 0;
 
-  // VALIDASI JAWABAN DULU
-  // Tombol belum dikunci di bagian ini.
   for (const soal of bankSoal) {
-    const input =
-      document.querySelector(
-        `input[name="${CSS.escape(soal.idsoal)}"]:checked`
-      );
+    const input = document.querySelector(
+      `input[name="${CSS.escape(soal.idsoal)}"]:checked`
+    );
 
     if (!input) {
       if (forceSubmit) {
@@ -214,15 +193,15 @@ async function kirimJawaban(forceSubmit = false) {
         continue;
       }
 
-Swal.fire({
-  icon: "warning",
-  title: "Jawaban Belum Lengkap",
-  text: "Jawab semua soal terlebih dahulu sebelum mengirim.",
-  confirmButtonText: "OK"
-});
+      Swal.fire({
+        icon: "warning",
+        title: "Jawaban Belum Lengkap",
+        text: "Jawab semua soal terlebih dahulu sebelum mengirim.",
+        confirmButtonText: "OK"
+      });
 
-tampilInfo(`Soal "${soal.idsoal}" belum dijawab.`);
-return;
+      tampilInfo(`Soal "${soal.idsoal}" belum dijawab.`);
+      return;
     }
 
     jawaban[soal.idsoal] = input.value;
@@ -232,18 +211,11 @@ return;
     }
   }
 
-  // TOMBOL BARU DIKUNCI SETELAH SEMUA VALIDASI LOLOS
-  const btnKirim =
-    document.getElementById("btnKirim");
+  const btnKirim = document.getElementById("btnKirim");
 
   btnKirim.disabled = true;
-  btnKirim.innerHTML =
-    '<span class="animate-pulse">⏳ Mengirim...</span>';
-
-  btnKirim.classList.add(
-    "opacity-60",
-    "cursor-not-allowed"
-  );
+  btnKirim.innerHTML = '<span class="animate-pulse">⏳ Mengirim...</span>';
+  btnKirim.classList.add("opacity-60", "cursor-not-allowed");
 
   const payload = {
     action: "saveRespon",
@@ -252,12 +224,8 @@ return;
     jawaban,
     skor,
     total: bankSoal.length,
-    waktuMulai:
-      waktuMulaiUjian
-        ? new Date(waktuMulaiUjian).toISOString()
-        : "",
-    waktuKirim:
-      new Date().toISOString(),
+    waktuMulai: waktuMulaiUjian ? new Date(waktuMulaiUjian).toISOString() : "",
+    waktuKirim: new Date().toISOString(),
     durasiMenit
   };
 
@@ -266,71 +234,39 @@ return;
 
     tampilInfo("Mengirim jawaban...");
 
-    const result =
-      await apiPost(payload);
+    const result = await apiPost(payload);
 
     if (!result.success) {
-      throw new Error(
-        result.message || "Gagal menyimpan jawaban."
-      );
+      throw new Error(result.message || "Gagal menyimpan jawaban.");
     }
 
     clearInterval(timerInterval);
 
-Swal.fire({
-  icon: "success",
-  title: "Jawaban Berhasil Dikirim",
-  text: `Skor Anda: ${skor}/${bankSoal.length}`,
-  confirmButtonText: "OK"
-});
-
-tampilInfo(
-  `Jawaban berhasil dikirim. Skor: ${skor}/${bankSoal.length}`
-);
-
-    document
-      .getElementById("areaUjian")
-      .classList.add("hidden");
-
-catch (error) {
-
-  Swal.fire({
-    icon: "error",
-    title: "Gagal Mengirim",
-    text: error.message,
-    confirmButtonText: "OK"
-  });
-
-  tampilInfo(error.message);
-
-    // Kalau gagal kirim ke server, tombol aktif lagi.
-    btnKirim.disabled = false;
-    btnKirim.innerHTML = "Kirim Jawaban";
-
-    btnKirim.classList.remove(
-      "opacity-60",
-      "cursor-not-allowed"
-    );
-
-  } finally {
-    sedangKirim = false;
-  }
-}
-
-async function konfirmasiKirim() {
-
-  const result =
-    await Swal.fire({
-      icon: "question",
-      title: "Kirim Jawaban?",
-      text: "Pastikan semua jawaban sudah benar karena tidak dapat diubah lagi.",
-      showCancelButton: true,
-      confirmButtonText: "Ya, Kirim",
-      cancelButtonText: "Batal"
+    Swal.fire({
+      icon: "success",
+      title: "Jawaban Berhasil Dikirim",
+      text: `Skor Anda: ${skor}/${bankSoal.length}`,
+      confirmButtonText: "OK"
     });
 
-  if (result.isConfirmed) {
-    kirimJawaban(false);
+    tampilInfo(`Jawaban berhasil dikirim. Skor: ${skor}/${bankSoal.length}`);
+
+    document.getElementById("areaUjian").classList.add("hidden");
+  } catch (error) {
+    Swal.fire({
+      icon: "error",
+      title: "Gagal Mengirim",
+      text: error.message,
+      confirmButtonText: "OK"
+    });
+
+    tampilInfo(error.message);
+
+    btnKirim.disabled = false;
+    btnKirim.innerHTML = "Kirim Jawaban";
+    btnKirim.classList.remove("opacity-60", "cursor-not-allowed");
+  } finally {
+    sedangKirim = false;
   }
 }
 
