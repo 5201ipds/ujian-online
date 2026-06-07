@@ -15,9 +15,9 @@ document.addEventListener("DOMContentLoaded", () => {
     .getElementById("btnMulai")
     .addEventListener("click", mulaiUjian);
 
-  document
-    .getElementById("btnKirim")
-    .addEventListener("click", () => kirimJawaban(false));
+document
+  .getElementById("btnKirim")
+  .addEventListener("click", konfirmasiKirim);
 });
 
 async function ambilSoal() {
@@ -214,8 +214,15 @@ async function kirimJawaban(forceSubmit = false) {
         continue;
       }
 
-      tampilInfo(`Soal "${soal.idsoal}" belum dijawab.`);
-      return;
+Swal.fire({
+  icon: "warning",
+  title: "Jawaban Belum Lengkap",
+  text: "Jawab semua soal terlebih dahulu sebelum mengirim.",
+  confirmButtonText: "OK"
+});
+
+tampilInfo(`Soal "${soal.idsoal}" belum dijawab.`);
+return;
     }
 
     jawaban[soal.idsoal] = input.value;
@@ -270,16 +277,31 @@ async function kirimJawaban(forceSubmit = false) {
 
     clearInterval(timerInterval);
 
-    tampilInfo(
-      `Jawaban berhasil dikirim. Skor: ${skor}/${bankSoal.length}`
-    );
+Swal.fire({
+  icon: "success",
+  title: "Jawaban Berhasil Dikirim",
+  text: `Skor Anda: ${skor}/${bankSoal.length}`,
+  confirmButtonText: "OK"
+});
+
+tampilInfo(
+  `Jawaban berhasil dikirim. Skor: ${skor}/${bankSoal.length}`
+);
 
     document
       .getElementById("areaUjian")
       .classList.add("hidden");
 
-  } catch (error) {
-    tampilInfo(error.message);
+catch (error) {
+
+  Swal.fire({
+    icon: "error",
+    title: "Gagal Mengirim",
+    text: error.message,
+    confirmButtonText: "OK"
+  });
+
+  tampilInfo(error.message);
 
     // Kalau gagal kirim ke server, tombol aktif lagi.
     btnKirim.disabled = false;
@@ -292,6 +314,23 @@ async function kirimJawaban(forceSubmit = false) {
 
   } finally {
     sedangKirim = false;
+  }
+}
+
+async function konfirmasiKirim() {
+
+  const result =
+    await Swal.fire({
+      icon: "question",
+      title: "Kirim Jawaban?",
+      text: "Pastikan semua jawaban sudah benar karena tidak dapat diubah lagi.",
+      showCancelButton: true,
+      confirmButtonText: "Ya, Kirim",
+      cancelButtonText: "Batal"
+    });
+
+  if (result.isConfirmed) {
+    kirimJawaban(false);
   }
 }
 
